@@ -1,4 +1,5 @@
 from operator import le
+import time 
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
@@ -62,26 +63,34 @@ def get_product_details(urls):
     temp_list = []
     for ele in urls:
         driver.get(url=ele)
+        time.sleep(5)
         # title of the product 
-        prod_title = driver.title
-        #print("The titile of the product is : ", prod_title)
+        prod_title = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div/div[2]/div[3]/div/div[1]/span').text
         # price of the product 
-        '''price = driver.find_element_by_class_name("pmmxKx")
-        #print("The price of the product is : ",price)
+        price = driver.find_element_by_class_name("pmmxKx")
         # brand of the product 
-        brand = driver.find_element_by_class_name("kQy1zo").text
-        #print("The brand of the product is : ",brand)
-        #stock = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[1]/div[1]/div[2]/div[5]/div')
-        #print("The stock availability is :", stock)
+        try:
+            brand = driver.find_element_by_class_name("kQy1zo").text
+        except:
+            brand = None
+        # Stock availability of the product 
+        #stock = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div/div[3]/div[2]/div[1]/div[1]/div[1]/div[2]/div[2]/div').text
         # description of the product 
-        description = driver.find_element_by_class_name('hrQhmh').text
-        #print("The description of the product is : ",description)
-        # Define a dictionary with details we need'''
+        try:
+            description = driver.find_element_by_class_name('hrQhmh').text
+        except:
+            description = None
+        # Units sold for the product 
+        units_sold = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div/div[2]/div[3]/div/div[2]/div[3]/div[1]').text
+        # Define a dictionary with details we need
         r = {
-            "1Title":prod_title,
-            #"2Price":price.text,
-            #"3Brand": brand,
-            #"4Description": description
+            "Title":prod_title,
+            "Product Url": ele,
+            "Price":price.text,
+            "Brand": brand,
+            #"Stock": stock,
+            "Units Sold": units_sold,
+            "Product Description": description
         }
         temp_list.append(r)
     driver.close()
@@ -96,7 +105,7 @@ def get_as_csv(temp_list):
     # converting the list into a dataframe 
     df = pd.DataFrame(temp_list)
     print("Inside get_as_csv")
-    df.to_csv("scrapped_data5.csv")
+    df.to_csv("scrapped_data7.csv")
     
 def main(website):
     driver.get(website)
