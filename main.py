@@ -1,4 +1,4 @@
-from operator import le
+from lib2to3.pgen2 import driver
 import time 
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -7,24 +7,33 @@ from selenium import webdriver
 import pandas as pd 
 
 # Function to get the product elements 
-def get_product_elements():
-    """ Gets the product elements under the page top 
-        sales and returns a list of product elements. 
+def get_urls_list():
+    """ Gets the product elements from first three pages under the top 
+        sales tab and returns a list which contains product urls of 
+        individual products. 
     """
 
     #web elements of the products in the given page 
-    #class_name = input("Enter the product container class name : ")
-    '''products_ele_list = []
-    #For scrapping data from next 3 pages
-    for page in range(2):
-        products = driver.find_elements_by_class_name("col-xs-2-4")
-        products_ele_list.append(products)
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        driver.find_element_by_xpath('//*[@id="main"]/div/div[3]/div/div[4]/div[2]/div/div[3]/div/button[8]').click()
-    print("Total num of products is : ",len(products_ele_list))'''
-    products = driver.find_elements_by_class_name("col-xs-2-4")
-    return products
+    urls_list = []
+    # For iterating over three pages
+    for page in range(3):
+        prod = driver.find_elements_by_class_name("col-xs-2-4")
+        print("The len of single page prod : ",len(prod))
+        urls = get_urls(prod)
+        urls_list += urls
+        # Time for all webelements to load 
+        time.sleep(3)
+        # Scrolling through the website, to overcome lazy loading 
+        driver.execute_script("window.scrollTo(0, window.scrollY + 200)")
+        time.sleep(3)
+        get_next_page()
+    return urls_list
 
+def get_next_page():
+    """ clicks the next page 
+        
+    """
+    driver.find_element_by_xpath('//*[@id="main"]/div/div[3]/div/div[4]/div[2]/div/div[3]/div/button[8]').click
 
 def get_urls(products):
     """ Gets the urls of the given product element 
@@ -36,22 +45,15 @@ def get_urls(products):
     # list to store the extracted urls
     urls = []    
     for item in products:
-        #driver.implicitly_wait(5)
         try:
             WebDriverWait(driver,10).until(EC.presence_of_all_elements_located((By.CLASS_NAME,"col-xs-2-4")))
             driver.execute_script("window.scrollTo(0, window.scrollY + 200)")
             a = item.find_element_by_tag_name("a").get_property("href")
             #Append to the urls list
-            print("The link is",a)
             urls.append(a)
         except:
-            #driver.implicitly_wait(10)
             print("Exception thrown")
-            #print('Page Refresh!')
-            #driver.refresh()
     return urls
-
-
 
 def get_product_details(urls):
     """ Scrapes the details from each url and stores in a dictionary
@@ -61,41 +63,53 @@ def get_product_details(urls):
     """
     print("length of the list urls : ",len(urls))
     temp_list = []
-    for ele in urls:
-        driver.get(url=ele)
-        time.sleep(5)
+    
+    for ele in range(1, len(urls)):
+        driver.get(url = urls[ele])
+        time.sleep(3)
+        print("Count of the product : ",ele)
         # title of the product 
-        prod_title = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div/div[2]/div[3]/div/div[1]/span').text
+        try:
+            prod_title = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div/div[2]/div[3]/div/div[1]/span').text
+        except:
+            prod_title = None
         # price of the product 
-        price = driver.find_element_by_class_name("pmmxKx")
+        try:
+            price = driver.find_element_by_class_name("pmmxKx").text
+        except:
+            price = None
         # brand of the product 
         try:
             brand = driver.find_element_by_class_name("kQy1zo").text
         except:
             brand = None
-        # Stock availability of the product 
-        #stock = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div/div[3]/div[2]/div[1]/div[1]/div[1]/div[2]/div[2]/div').text
         # description of the product 
         try:
             description = driver.find_element_by_class_name('hrQhmh').text
         except:
             description = None
         # Units sold for the product 
-        units_sold = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div/div[2]/div[3]/div/div[2]/div[3]/div[1]').text
+        try: 
+            units_sold = driver.find_element_by_xpath('//*[@id="main"]/div/div[2]/div[1]/div/div[2]/div/div[2]/div[3]/div/div[2]/div[3]/div[1]').text
+        except:
+            units_sold = None
+        try:
+            rating = driver.find_element_by_class_name('MrYJVA').text
+        except:
+            rating = None 
         # Define a dictionary with details we need
-        r = {
+        r = {   
             "Title":prod_title,
-            "Product Url": ele,
-            "Price":price.text,
+            "Product Url": urls[ele],
+            "Price":price,
             "Brand": brand,
-            #"Stock": stock,
+            "Rating": rating,
             "Units Sold": units_sold,
             "Product Description": description
         }
         temp_list.append(r)
     driver.close()
     return temp_list
-
 
 def get_as_csv(temp_list):
     """ Stores the scrapped data from the website to a csv file 
@@ -105,16 +119,14 @@ def get_as_csv(temp_list):
     # converting the list into a dataframe 
     df = pd.DataFrame(temp_list)
     print("Inside get_as_csv")
-    df.to_csv("scrapped_data7.csv")
+    df.to_csv("scrapped_data1.csv")
     
 def main(website):
     driver.get(website)
     driver.maximize_window()
-    prod = get_product_elements()
-    link = get_urls(prod)
-    temporary_list = get_product_details(link)
-    get_as_csv(temporary_list)
-
+    url_list  = get_urls_list()
+    temporary_list_1 = get_product_details(url_list)
+    get_as_csv(temporary_list_1)
 
 
 if __name__ == "__main__":
@@ -122,6 +134,5 @@ if __name__ == "__main__":
     website = input("Enter the website link : ")
     PATH = "C:/Users/josephan/Desktop/Python_files/chromedriver"
     driver = webdriver.Chrome(PATH)
-    #driver.implicitly_wait(5)
     # website to be scrapped from https://shopee.sg/Beauty-Personal-Care-cat.11012301?page=0&sortBy=sales
     main(website)
