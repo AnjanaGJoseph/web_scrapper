@@ -119,7 +119,7 @@ def get_as_csv(temp_list):
     # converting the list into a dataframe 
     df = pd.DataFrame(temp_list)
     print("Inside get_as_csv")
-    df.to_csv("scrapped_data1.csv")
+    df.to_csv("scrapped_data10.csv", index=False)
     
 def main(website):
     driver.get(website)
